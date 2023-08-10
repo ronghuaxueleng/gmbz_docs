@@ -1,7 +1,14 @@
-import csv
 import json
 
 import requests
+
+
+def generate_markdown_table(headers, rows):
+    table = "| " + " | ".join(headers) + " |\n"
+    table += "| " + " | ".join(["---"] * len(headers)) + " |\n"
+    for row in rows:
+        table += "| " + " | ".join(row) + " |\n"
+    return table
 
 
 def fetch_files():
@@ -21,13 +28,11 @@ def fetch_files():
 
     response = requests.request("POST", url, headers=headers, data=payload)
     content_json = json.loads(response.text)
-
-    gmbz_docs = './gmbz_docs.csv'
-    with open(gmbz_docs, "w") as csvfile:
-        writer = csv.writer(csvfile)
-        # 先写入columns_name
-        # writer.writerow(["index", "行标号", "标准中文名称", "类别", "状态", "牵头单位", "合作单位", "发布", "实施", "文档下载"])
-        writer.writerow(["index", "行标号", "标准中文名称", "类别", "状态", "发布", "实施", "文档下载"])
+    md_content = '# 国密标准文档\n\n官网链接\nhttp://www.gmbz.org.cn/main/bzlb.html?from=groupmessage\n'
+    gmbz_docs = './README.md'
+    with open(gmbz_docs, "w") as mdfile:
+        headers = ["index", "行标号", "标准中文名称", "类别", "状态", "发布", "实施", "文档下载"]
+        rows = list()
         index = 0
         for line in content_json['data']:
             index += 1
@@ -40,26 +45,11 @@ def fetch_files():
             NORM_PUB_DATE = line['NORM_PUB_DATE']
             NORM_IMP_DATE = line['NORM_IMP_DATE']
             NORM_APP_ADDR = line['NORM_APP_ADDR']
-
             download = 'http://www.gmbz.org.cn/file/{}'.format(NORM_APP_ADDR)
+            rows.append([str(index), NORM_ID, NORM_NAME_C, NORM_ZT_NAME, NORM_FLAG_NAME, NORM_PUB_DATE, NORM_IMP_DATE, download])
 
-            # csv_line = [index, NORM_ID, NORM_NAME_C, NORM_ZT_NAME, NORM_FLAG_NAME, NORM_CO_NAME, NORM_CA_NAME, NORM_PUB_DATE, NORM_IMP_DATE, download]
-            csv_line = [index, NORM_ID, NORM_NAME_C, NORM_ZT_NAME, NORM_FLAG_NAME, NORM_PUB_DATE, NORM_IMP_DATE,
-                        download]
-            writer.writerow(csv_line)
-
-            # download file
-            """
-            out_file = '{} {}.pdf'.format(NORM_ID.replace('/', ''), NORM_NAME_C.replace(' ', ''))
-            print('[*] out_file => {}'.format(out_file))
-            try:
-                download_cmd = 'curl {} -o "{}"'.format(download, out_file)
-                print('[*] {}'.format(download_cmd))
-                p = subprocess.Popen(download_cmd, shell=True)
-                p.wait()
-            except:
-                pass
-            """
+        md_content += generate_markdown_table(headers, rows)
+        mdfile.write(md_content)
 
 
 if __name__ == '__main__':
